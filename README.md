@@ -3,6 +3,7 @@
 ## 特徴
 100% Pure ChatGPT Code<br>
 nginx+fpm環境のWordpressに対応<br>
+mod_rewriteや.htaccessが不要<br>
 Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより高速化
 
 ## インストール
@@ -29,7 +30,9 @@ avifencを使用すると多大な負荷がかかるだけではなく、
 ## アンインストール
 無効化して削除
 
-面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
+wp-content/compressed-image をすべて削除
+
+v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
 v0.22 - 経緯な変更、特にWebサイトからfetchされる時 webp/avifに対応してないとうまくいかないのを修正
