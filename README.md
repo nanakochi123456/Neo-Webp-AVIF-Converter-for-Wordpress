@@ -1,4 +1,4 @@
-# Wordpress webpコンバーター
+# Free Wordpress webp/AVIFコンバーター
 
 ## 特徴
 100% Pure ChatGPT Code<br>
@@ -12,10 +12,13 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 ## 設定画面
 設定画面は、設定→Neo Webp Converterの中にあります
 
+## avifについて
+avifencコマンドがPATHに通ってないと使用できません
+
 ## アンインストール
 無効化して削除
 
-面倒だが、wp-content/uploads 以下の *.webpファイルをそれぞれ削除
+面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## その他
 コードの中に、以下のものが入っています
@@ -27,4 +30,5 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 
 ３．JavaScriptで置き換える（無効）
 
+おそらく2番しかうまく動きません
 コメント、コメントアウトしてご利用下さい

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Neo-WebP-Converter
- * Description: 自動で WebP を作成し、HTML を変換する
- * Version: 0.1
+ * Description: 自動で WebP/AVIF を作成し、HTML を変換する
+ * Version: 0.2
  * Author: Nano Yozakura
  */
 
@@ -46,6 +46,12 @@ function webp_converter_enqueue_script() {
 add_action('wp_enqueue_scripts', 'webp_converter_enqueue_script');
 */
 
+// エラーログ
+function neoerrorlog($content) {
+    if(0) {
+        error_log($content);
+    }
+}
 
 // 管理画面のメニュー追加
 function webp_converter_add_admin_menu() {
@@ -99,11 +105,11 @@ function webp_converter_add_bulk_convert_button() {
     ?>
     <form method="post" action="">
         <input type="hidden" name="webp_bulk_convert" value="1">
-        <?php submit_button('既存画像を WebP に変換'); ?>
+        <?php submit_button('既存画像を WebP /AVIF に変換'); ?>
     </form>
     <?php
     if (isset($_POST['webp_bulk_convert'])) {
-        webp_convert_existing_images();
+        webp_avif_convert_existing_images();
     }
 }
 add_action('admin_notices', 'webp_converter_add_bulk_convert_button');
@@ -124,13 +130,15 @@ function get_all_images($dir) {
     return $files;
 }
 
-// 既存画像を WebP に変換
-function webp_convert_existing_images() {
+// 既存画像を WebP、AVIF に変換
+function webp_avif_convert_existing_images() {
     $upload_dir = wp_upload_dir();
     $base_dir = $upload_dir['basedir']; // /home/username/public_html/wp-content/uploads
     $quality = get_option('webp_quality', 80);
-//    $files = glob($base_dir . '/**/*.{jpg,jpeg,png,JPG,JPEG,PNG}', GLOB_BRACE);
-  $files = get_all_images($base_dir);
+    $avif_quality = get_option('avif_quality', 30); // AVIF は 30 くらいが推奨
+
+    $files = get_all_images($base_dir);
+
     if (!$files) {
         echo '<div class="notice notice-error"><p>変換する画像が見つかりません。</p></div>';
         return;
@@ -140,15 +148,16 @@ function webp_convert_existing_images() {
 
     foreach ($files as $file) {
         $webp_path = $file . '.webp';
+        $avif_path = $file . '.avif';
 
+        // WebP 変換
         if (!file_exists($webp_path) && function_exists('imagewebp')) {
             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            
             if ($ext === 'jpg' || $ext === 'jpeg') {
                 $image = @imagecreatefromjpeg($file);
             } elseif ($ext === 'png') {
                 $image = @imagecreatefrompng($file);
-                imagepalettetotruecolor($image); // パレット PNG の場合は変換
+                imagepalettetotruecolor($image); // パレット PNG を変換
             } else {
                 $image = false;
             }
@@ -156,14 +165,22 @@ function webp_convert_existing_images() {
             if ($image) {
                 imagewebp($image, $webp_path, $quality);
                 imagedestroy($image);
-                $converted_count++;
-            } else {
-                error_log("WebP 変換失敗: " . $file); // ログに記録
             }
         }
+
+        // AVIF 変換（`avifenc` バイナリを使用）
+        if (!file_exists($avif_path)) {
+            $cmd = "avifenc --min " . escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file) . " " . escapeshellarg($avif_path);
+            exec($cmd, $output, $result);
+            if ($result !== 0) {
+                neoerrorlog("AVIF 変換失敗: " . $file);
+            }
+        }
+
+        $converted_count++;
     }
 
-    echo '<div class="notice notice-success"><p>' . $converted_count . ' 件の画像を WebP に変換しました。</p></div>';
+    echo '<div class="notice notice-success"><p>' . $converted_count . ' 件の画像を WebP / AVIF に変換しました。</p></div>';
 }
 
 function generate_webp_on_upload($metadata) {
@@ -188,49 +205,124 @@ function generate_webp_on_upload($metadata) {
 add_filter('wp_generate_attachment_metadata', 'generate_webp_on_upload');
 
 
-/*  方法 1: .jpg.webp を自動的に出力する（フィルターを使用） */
+/*  方法 ①: the_content フィルターで HTML を置換 */
 /*
-function replace_images_with_webp($content) {
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false) {
-        $content = preg_replace_callback('/<img\s+[^>]*src=["\']([^"\']+)\.(jpg|jpeg|png)["\'][^>]*>/i', function ($matches) {
-            $webp_url = $matches[1] . '.' . $matches[2] . '.webp';
+function replace_images_with_picture($content) {
+    neoerrorlog("replace_images_with_picture() called");
 
-            if (file_exists(str_replace(site_url(), ABSPATH, $webp_url))) {
-                return str_replace($matches[1] . '.' . $matches[2], $webp_url, $matches[0]);
-            } else {
-                return $matches[0]; // WebP がない場合はそのまま
-            }
-        }, $content);
+    if (!isset($_SERVER['HTTP_ACCEPT'])) {
+        neoerrorlog("HTTP_ACCEPT is not set");
+        return $content;
     }
-    return $content;
+
+    $accept = $_SERVER['HTTP_ACCEPT'];
+    neoerrorlog("HTTP_ACCEPT: " . $accept);
+
+    if (strpos($accept, 'image/avif') === false) {
+        neoerrorlog("Browser does not support AVIF");
+    }
+    if (strpos($accept, 'image/webp') === false) {
+        neoerrorlog("Browser does not support WebP");
+    }
+
+    return preg_replace_callback('/<img\s+([^>]*?)src=["\']([^"\']+)\.(jpg|jpeg|png)["\']([^>]*?)>/i', function ($matches) {
+        $src = $matches[2] . '.' . $matches[3];
+        $webp_src = $src . '.webp';
+        $avif_src = $src . '.avif';
+
+        $webp_exists = file_exists(str_replace(site_url(), ABSPATH, $webp_src));
+        $avif_exists = file_exists(str_replace(site_url(), ABSPATH, $avif_src));
+
+        neoerrorlog("Checking: " . $src);
+        neoerrorlog("WebP Exists: " . ($webp_exists ? "Yes" : "No"));
+        neoerrorlog("AVIF Exists: " . ($avif_exists ? "Yes" : "No"));
+
+        if ($webp_exists || $avif_exists) {
+            $picture_tag = '<picture>';
+            if ($avif_exists) {
+                $picture_tag .= '<source srcset="' . $avif_src . '" type="image/avif">';
+            }
+            if ($webp_exists) {
+                $picture_tag .= '<source srcset="' . $webp_src . '" type="image/webp">';
+            }
+            $picture_tag .= $matches[0] . '</picture>';
+            return $picture_tag;
+        }
+
+        return $matches[0];
+    }, $content);
 }
-add_filter('the_content', 'replace_images_with_webp');
+add_filter('the_content', 'replace_images_with_picture');
 */
 
-/* 方法 2: <picture> タグを自動挿入 */
-function convert_images_to_webp($attr, $attachment, $size) {
-    if (isset($attr['src']) && strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false) {
-        $webp_url = $attr['src'] . '.webp';
-        $webp_path = str_replace(site_url(), ABSPATH, $webp_url);
+/* 方法 ②: WordPress の wp_get_attachment_image_attributes を変更 */
 
-        if (file_exists($webp_path)) {
-            $original_src = $attr['src'];
-            $attr['src'] = $webp_url;
-            $attr['srcset'] = $webp_url;
-            $attr['data-original'] = $original_src; // デバッグ用
-        }
+function convert_images_to_webp_avif($attr, $attachment, $size) {
+    neoerrorlog("convert_images_to_webp_avif() called");
+
+    if (!isset($attr['src'])) {
+        neoerrorlog("No src attribute found in image");
+        return $attr;
     }
+
+    if (!isset($_SERVER['HTTP_ACCEPT'])) {
+        neoerrorlog("HTTP_ACCEPT is not set");
+        return $attr;
+    }
+
+    $accept = $_SERVER['HTTP_ACCEPT'];
+    neoerrorlog("HTTP_ACCEPT: " . $accept);
+
+    if (strpos($accept, 'image/avif') === false) {
+        neoerrorlog("Browser does not support AVIF");
+    }
+    if (strpos($accept, 'image/webp') === false) {
+        neoerrorlog("Browser does not support WebP");
+    }
+
+    $src = $attr['src'];
+    $webp_src = $src . '.webp';
+    $avif_src = $src . '.avif';
+
+    $webp_exists = file_exists(str_replace(site_url(), ABSPATH, $webp_src));
+    $avif_exists = file_exists(str_replace(site_url(), ABSPATH, $avif_src));
+
+    neoerrorlog("Checking: " . $src);
+    neoerrorlog("WebP Exists: " . ($webp_exists ? "Yes" : "No"));
+    neoerrorlog("AVIF Exists: " . ($avif_exists ? "Yes" : "No"));
+
+    if ($webp_exists || $avif_exists) {
+        $attr['srcset'] = '';
+        if ($avif_exists) {
+            $attr['srcset'] .= $avif_src . ' 1x, ';
+        }
+        if ($webp_exists) {
+            $attr['srcset'] .= $webp_src . ' 1x';
+        }
+        $attr['src'] = $avif_exists ? $avif_src : $webp_src;
+    }
+
     return $attr;
 }
-add_filter('wp_get_attachment_image_attributes', 'convert_images_to_webp', 10, 3);
+add_filter('wp_get_attachment_image_attributes', 'convert_images_to_webp_avif', 10, 3);
 
-
-/* 方法3：JavaScript
-function add_webp_js_script() {
+/* for JS */
+/*
+function add_webp_avif_js_script() {
     ?>
     <script>
     document.addEventListener("DOMContentLoaded", function () {
-        if (document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp") == 0) {
+        if (document.createElement("canvas").toDataURL("image/avif").indexOf("data:image/avif") === 0) {
+            document.querySelectorAll("img").forEach(img => {
+                let avifSrc = img.src + ".avif";
+                fetch(avifSrc, { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            img.src = avifSrc;
+                        }
+                    });
+            });
+        } else if (document.createElement("canvas").toDataURL("image/webp").indexOf("data:image/webp") === 0) {
             document.querySelectorAll("img").forEach(img => {
                 let webpSrc = img.src + ".webp";
                 fetch(webpSrc, { method: 'HEAD' })
@@ -245,5 +337,6 @@ function add_webp_js_script() {
     </script>
     <?php
 }
-add_action('wp_footer', 'add_webp_js_script');
+add_action('wp_footer', 'add_webp_avif_js_script');
 */
+
