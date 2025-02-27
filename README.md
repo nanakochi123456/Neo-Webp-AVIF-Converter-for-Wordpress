@@ -35,6 +35,8 @@ wp-content/compressed-image をすべて削除
 v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
+v0.30 - メディアアップロード時に動的変換
+
 v0.23 - ユーザー権限サーバーでも動作するように？avifencのパスを設定できるようにした、webpとavifの変換を分割化、avifencがなくても正常動作するようにした
 
 v0.22 - 経緯な変更、特にWebサイト等（ブログランキング、SNS等）からfetchされる時 webp/avifに対応してないとうまくいかないのを修正
