@@ -18,7 +18,8 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 ## その他
 コードの中に、以下のものが入っています
 
-１．HTMLを直接 .jpg.webp 等に置換する（無効）
+１．HTMLを直接 .jpg.webp 等に置換する（無効）<br>
+これを有効にした場合、キャッシングプラグインが使用できません
 
 ２．pictureタグに置き換える（有効）
 
