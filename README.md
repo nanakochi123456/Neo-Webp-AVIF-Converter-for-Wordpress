@@ -17,7 +17,7 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 avifencコマンドがPATHに通ってないと使用できません
 
 sudo apt install libavif-bin<br>
-sudo pkg install avifenc
+sudo pkg install libavif
 
 等としてインストールしてください
 
