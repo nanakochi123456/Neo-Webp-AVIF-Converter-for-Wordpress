@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Neo-WebP-Converter
+ * Plugin Name: Neo WebP/AVIF Converter
  * Description: 自動で WebP/AVIF を作成し、HTML を変換する
- * Version: 0.22
+ * Version: 0.23
  * Author: Nano Yozakura
  */
 
@@ -10,7 +10,7 @@ ini_set('memory_limit', '512M');
 
 // エラーログ
 function neoerrorlog($content) {
-    if(0) {
+    if(1) {
         error_log($content);
     }
 }
@@ -25,7 +25,7 @@ add_action('admin_menu', 'webp_converter_add_admin_menu');
 function webp_converter_settings_page() {
     ?>
     <div class="wrap">
-        <h1>Neo WebP Converter 設定</h1>
+        <h1>Neo WebP/AVIF Converter 設定</h1>
         <form method="post" action="options.php">
             <?php
             settings_fields('webp_converter_options');
@@ -40,12 +40,14 @@ function webp_converter_settings_page() {
 // 設定オプションの登録
 function webp_converter_register_settings() {
     register_setting('webp_converter_options', 'webp_quality');
-    register_setting('webp_converter_options', 'webp_replace_html');
+    register_setting('webp_converter_options', 'avif_quality');
+    register_setting('webp_converter_options', 'avifenc_path');
 
     add_settings_section('webp_converter_section', '基本設定', null, 'webp_converter');
 
-    add_settings_field('webp_quality', 'WebP 画質 (0-100)', 'webp_quality_callback', 'webp_converter', 'webp_converter_section');
-    add_settings_field('webp_replace_html', 'HTML の書き換えを有効にする', 'webp_replace_html_callback', 'webp_converter', 'webp_converter_section');
+    add_settings_field('webp_quality', 'WebP 画質 (0-100 80が標準)', 'webp_quality_callback', 'webp_converter', 'webp_converter_section');
+    add_settings_field('avif_quality', 'AVIF 画質 (0-100 30が標準)', 'avif_quality_callback', 'webp_converter', 'webp_converter_section');
+    add_settings_field('avifenc_path', 'avifencの絶対PATH', 'avifenc_path_callback', 'webp_converter', 'webp_converter_section');
 }
 add_action('admin_init', 'webp_converter_register_settings');
 
@@ -55,11 +57,15 @@ function webp_quality_callback() {
     echo "<input type='number' name='webp_quality' value='$quality' min='0' max='100' />";
 }
 
-// HTML 書き換えの ON/OFF スイッチ
-function webp_replace_html_callback() {
-    $replace_html = get_option('webp_replace_html', 1);
-    $checked = $replace_html ? 'checked' : '';
-    echo "<input type='checkbox' name='webp_replace_html' value='1' $checked />";
+function avif_quality_callback() {
+    $quality = get_option('avif_quality', 30);
+    echo "<input type='number' name='avif_quality' value='$quality' min='0' max='100' />";
+}
+
+// avifencのパス
+function avifenc_path_callback() {
+    $avifenc_path = get_option('avifenc_path', '');
+    echo "<input type='text' name='avifenc_path' value='$avifenc_path' /> 空欄でPATHを参照する";
 }
 
 // 一括変換のボタンを追加
@@ -67,7 +73,7 @@ function webp_converter_add_bulk_convert_button() {
     ?>
     <form method="post" action="">
         <input type="hidden" name="webp_bulk_convert" value="1">
-        <?php submit_button('既存画像を WebP /AVIF に変換'); ?>
+        <?php submit_button('既存画像を WebP / AVIF に変換'); ?>
     </form>
     <?php
     if (isset($_POST['webp_bulk_convert'])) {
@@ -99,17 +105,23 @@ function webp_avif_convert_existing_images() {
     $compressed_dir_uploads = WP_CONTENT_DIR . '/compressed-image/uploads'; // 保存先を変更
     $compressed_dir_themes = WP_CONTENT_DIR . '/compressed-image/themes'; // 保存先を変更
 
-    $count_uploads=webp_avif_convert($base_dir, $compressed_dir_uploads);
-    $count_themes=webp_avif_convert($theme_dir, $compressed_dir_themes);
+    $webp_count_uploads=webp_convert($base_dir, $compressed_dir_uploads);
+    $webp_count_themes=webp_convert($theme_dir, $compressed_dir_themes);
 
-    $converted_count = $count_uploads + $count_themes;
-    echo '<div class="notice notice-success"><p>' . $converted_count . ' 件の画像を WebP / AVIF に変換しました。</p></div>';
+    $webp_converted_count = $webp_count_uploads + $webp_count_themes;
+
+    $avif_count_uploads=avif_convert($base_dir, $compressed_dir_uploads);
+    $avif_count_themes=avif_convert($theme_dir, $compressed_dir_themes);
+
+    $avif_converted_count = $avif_count_uploads + $avif_count_themes;
+
+    echo '<div class="notice notice-success"><p>' . $webp_converted_count . ' 件の画像を WebP に変換しました。</p></div>';
+    echo '<div class="notice notice-success"><p>' . $avif_converted_count . ' 件の画像を AVIF に変換しました。</p></div>';
 }
 
-// 既存画像を WebP、AVIF に変換
-function webp_avif_convert($base_dir, $compressed_dir) {
+// 既存画像を WebPに変換
+function webp_convert($base_dir, $compressed_dir) {
     $quality = get_option('webp_quality', 80);
-    $avif_quality = get_option('avif_quality', 30); // AVIF は 30 くらいが推奨
 
     // `compressed-image` ディレクトリがなければ作成
     if (!file_exists($compressed_dir)) {
@@ -150,19 +162,54 @@ function webp_avif_convert($base_dir, $compressed_dir) {
             if ($image) {
                 imagewebp($image, $webp_path, $quality);
                 imagedestroy($image);
+                $converted_count++;
             }
+        }
+    }
+    return $converted_count;
+}
+
+function avif_convert($base_dir, $compressed_dir) {
+    $avif_quality = get_option('avif_quality', 30); // AVIF は 30 くらいが推奨
+    $avifenc_path = get_option('avifenc_path', '');
+
+    // `compressed-image` ディレクトリがなければ作成
+    if (!file_exists($compressed_dir)) {
+        mkdir($compressed_dir, 0755, true);
+    }
+
+    $files = get_all_images($base_dir);
+
+    if (!$files) {
+        echo '<div class="notice notice-error"><p>変換する画像が見つかりません。</p></div>';
+        return;
+    }
+
+    $converted_count = 0;
+
+    foreach ($files as $file) {
+        $relative_path = str_replace($base_dir, '', $file);
+        $webp_path = $compressed_dir . $relative_path . '.webp';
+        $avif_path = $compressed_dir . $relative_path . '.avif';
+        // サブフォルダも作成
+        $webp_folder = dirname($webp_path);
+        if (!file_exists($webp_folder)) {
+            mkdir($webp_folder, 0755, true);
         }
 
         // AVIF 変換（`avifenc` バイナリを使用）
         if (!file_exists($avif_path)) {
-            $cmd = "avifenc --min " . escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file) . " " . escapeshellarg($avif_path);
+            if($avifenc_path == '') {
+                $avifenc_path = "avifenc";
+            }
+            $cmd = $avifenc_path . " --min " . escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file) . " " . escapeshellarg($avif_path);
             exec($cmd, $output, $result);
             if ($result !== 0) {
                 neoerrorlog("AVIF 変換失敗: " . $file);
+            } else {
+                $converted_count++;
             }
         }
-
-        $converted_count++;
     }
     return $converted_count;
 }
