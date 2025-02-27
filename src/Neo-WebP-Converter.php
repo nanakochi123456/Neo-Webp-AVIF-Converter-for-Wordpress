@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Neo-WebP-Converter
  * Description: 自動で WebP/AVIF を作成し、HTML を変換する
- * Version: 0.21
+ * Version: 0.22
  * Author: Nano Yozakura
  */
 
@@ -249,7 +249,7 @@ function convert_images_to_webp_avif($attr, $attachment, $size) {
         if ($webp_exists) {
             $attr['srcset'] .= $webp_src . ' 1x';
         }
-        $attr['src'] = $avif_exists ? $avif_src : $webp_src;
+        //$attr['src'] = $avif_exists ? $avif_src : $webp_src;
     }
 
     return $attr;
