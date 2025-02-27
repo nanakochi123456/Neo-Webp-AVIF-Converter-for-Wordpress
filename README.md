@@ -3,8 +3,10 @@
 ## 特徴
 100% Pure ChatGPT Based Code<br>
 nginx+fpm環境のWordpressに対応<br>
+nginx.confとかをいじる必要がなし<br>
 mod_rewriteや.htaccessが不要<br>
-Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより高速化
+Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより高速化<br>
+img srcsetで画像を置換
 
 ## インストール
 WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
@@ -35,6 +37,8 @@ wp-content/compressed-image をすべて削除
 v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
+v0.31 - avifenc の -j オプションでJOB数を指定できるようにした
+
 v0.30 - メディアアップロード時に動的変換
 
 v0.23 - ユーザー権限サーバーでも動作するように？avifencのパスを設定できるようにした、webpとavifの変換を分割化、avifencがなくても正常動作するようにした
