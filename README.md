@@ -15,6 +15,8 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 ## アンインストール
 無効化して削除
 
+面倒だが、wp-content/uploads 以下の *.webpファイルをそれぞれ削除
+
 ## その他
 コードの中に、以下のものが入っています
 
