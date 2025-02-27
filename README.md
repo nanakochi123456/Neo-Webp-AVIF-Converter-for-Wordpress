@@ -15,6 +15,11 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 ## avifについて
 avifencコマンドがPATHに通ってないと使用できません
 
+sudo apt install libavif-bin<br>
+sudo pkg install avifenc
+
+等としてインストールしてください
+
 ## 圧縮について
 avifencを使用すると多大な負荷がかかるだけではなく、
 ファイル数が多いと504エラーになります
