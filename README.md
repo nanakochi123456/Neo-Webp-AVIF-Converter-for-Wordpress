@@ -37,6 +37,8 @@ wp-content/compressed-image をすべて削除
 v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
+v0.32 - 手動一括変換時にavifencが存在しない場合、エラーを出力するようにした
+
 v0.31 - avifenc の -j オプションでJOB数を指定できるようにした
 
 v0.30 - メディアアップロード時に動的変換

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Neo WebP/AVIF Converter
  * Description: 自動で WebP/AVIF を作成し、HTML を変換する
- * Version: 0.31
+ * Version: 0.32
  * Author: Nano Yozakura
  */
 
@@ -11,6 +11,8 @@ if (!defined('ABSPATH')) {
 }
 
 ini_set('memory_limit', '512M');
+
+putenv("PATH=/usr/local/bin:/usr/bin:/bin"); // 必要なら PATH を設定
 
 // エラーログ
 function neowebp_errorlog($content) {
@@ -139,7 +141,22 @@ function neowebp_webp_avif_convert_existing_images() {
     $avif_converted_count = $avif_count_uploads + $avif_count_themes;
 
     echo '<div class="notice notice-success"><p>' . $webp_converted_count . ' 件の画像を WebP に変換しました。</p></div>';
-    echo '<div class="notice notice-success"><p>' . $avif_converted_count . ' 件の画像を AVIF に変換しました。</p></div>';
+
+
+    // avifencが動作するか再確認
+    $avifenc_path = get_option('neowebp_avifenc_path', '');
+    if($avifenc_path == '') {
+        $avifenc_path = "avifenc";
+    }
+
+    $output = [];
+    $result = 0;
+    exec("$avifenc_path 2>&1", $output, $result);
+    if ($result === 127) {
+        echo '<div class="notice notice-error"><p>avifencが動作していません。インストールされているかサーバーでexec()が許可されているか確認して下さい。</p></div>';
+    } else {
+	    echo '<div class="notice notice-success"><p>' . $avif_converted_count . ' 件の画像を AVIF に変換しました。</p></div>';
+    }
 }
 
 // 既存画像を WebPに変換
