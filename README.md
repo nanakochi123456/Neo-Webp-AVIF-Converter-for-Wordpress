@@ -16,7 +16,13 @@ WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
 設定画面は、設定→Neo Webp Converterの中にあります
 
 ## avifについて
-avifencコマンドがPATHに通ってないと使用できません
+AVIFの変換はphp8.1以降、libgd 2.3.0以降でないと対応しません
+
+sudo apt install libgd-dev
+
+等としてインストールしてください
+
+もしくはavifencコマンドがPATHに通ってないと使用できません
 
 sudo apt install libavif-bin<br>
 sudo pkg install libavif
@@ -37,6 +43,8 @@ wp-content/compressed-image をすべて削除
 v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
+v0.33 - avif変換にphpのエンコーダに対応
+
 v0.32 - 手動一括変換時にavifencが存在しない場合、エラーを出力するようにした
 
 v0.31 - avifenc の -j オプションでJOB数を指定できるようにした

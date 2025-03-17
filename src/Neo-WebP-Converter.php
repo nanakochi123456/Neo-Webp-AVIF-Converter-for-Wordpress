@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Neo WebP/AVIF Converter
  * Description: 自動で WebP/AVIF を作成し、HTML を変換する
- * Version: 0.32
+ * Version: 0.33
  * Author: Nano Yozakura
  */
 
@@ -151,18 +151,20 @@ function neowebp_webp_avif_convert_existing_images() {
 
     $output = [];
     $result = 0;
-    exec("$avifenc_path 2>&1", $output, $result);
-    if ($result === 127) {
-        echo '<div class="notice notice-error"><p>avifencが動作していません。インストールされているかサーバーでexec()が許可されているか確認して下さい。</p></div>';
-    } else {
-	    echo '<div class="notice notice-success"><p>' . $avif_converted_count . ' 件の画像を AVIF に変換しました。</p></div>';
+
+    if(!(imagetypes() & IMG_AVIF)) {
+        exec("$avifenc_path 2>&1", $output, $result);
+        if ($result === 127) {
+            echo '<div class="notice notice-error"><p>avifencが動作していません。インストールされているかサーバーでexec()が許可されているか確認して下さい。</p></div>';
+            return;
+        }
     }
+    echo '<div class="notice notice-success"><p>' . $avif_converted_count . ' 件の画像を AVIF に変換しました。</p></div>';
 }
 
 // 既存画像を WebPに変換
 function neowebp_webp_convert($base_dir, $compressed_dir) {
     neowebp_errorlog("webp_convert() called");
-    $quality = get_option('neowebp_webp_quality', 80);
 
     // `compressed-image` ディレクトリがなければ作成
     if (!file_exists($compressed_dir)) {
@@ -189,23 +191,68 @@ function neowebp_webp_convert($base_dir, $compressed_dir) {
         if (!file_exists($webp_folder)) {
             mkdir($webp_folder, 0755, true);
         }
+        $converted_count += towebp($file, $webp_path);
+    }
+    return $converted_count;
+}
 
-        // WebP 変換
-        if (!file_exists($webp_path) && function_exists('imagewebp')) {
-            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            if ($ext === 'jpg' || $ext === 'jpeg' || $ext === 'JPG' || $ext === 'JPEG') {
-                $image = @imagecreatefromjpeg($file);
-            } elseif ($ext === 'png' || $ext === 'PNG') {
-                $image = @imagecreatefrompng($file);
-                imagepalettetotruecolor($image); // パレット PNG を変換
-            } else {
-                $image = false;
-            }
+// WebP 変換
+function towebp($file_path, $webp_path) {
+    $quality = get_option('neowebp_webp_quality', 80);
 
-            if ($image) {
-                imagewebp($image, $webp_path, $quality);
-                imagedestroy($image);
+    if (!file_exists($webp_path) && function_exists('imagewebp')) {
+        $ext = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+        if ($ext === 'jpg' || $ext === 'jpeg' || $ext === 'JPG' || $ext === 'JPEG') {
+            $image = @imagecreatefromjpeg($file_path);
+        } elseif ($ext === 'png' || $ext === 'PNG') {
+            $image = @imagecreatefrompng($file_path);
+            imagepalettetotruecolor($image); // パレット PNG を変換
+        } else {
+            $image = false;
+        }
+
+        if ($image) {
+            imagewebp($image, $webp_path, $quality);
+            imagedestroy($image);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// AVIF 変換
+function toavif($file_path, $avif_path) {
+    $converted_count = 0;
+    $avif_quality = get_option('neowebp_avif_quality', 30); // AVIF は 30 くらいが推奨
+    $avifenc_path = get_option('neowebp_avifenc_path', '');
+    $avifenc_jobs = get_option('neowebp_avifenc_jobs', 1);
+
+    // AVIF 変換（`avifenc` バイナリを使用）
+    if (!file_exists($avif_path)) {
+        if($avifenc_path == '') {
+            $avifenc_path = "avifenc";
+        }
+        $cmd = $avifenc_path . " -j " . $avifenc_jobs . " --min " . " " . escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file_path) . " " . escapeshellarg($avif_path);
+        neowebp_errorlog("cmd:".$cmd);
+        exec($cmd, $output, $result);
+        if ($result === 0) {
+            $converted_count++;
+        } else {
+            // AVIF 変換（phpを使用）
+            if (imagetypes() & IMG_AVIF) {
+                $ext = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+                if ($ext === 'jpg' || $ext === 'jpeg' || $ext === 'JPG' || $ext === 'JPEG') {
+                    $image = @imagecreatefromjpeg($file_path);
+                } elseif ($ext === 'png' || $ext === 'PNG') {
+                    $image = @imagecreatefrompng($file_path);
+                    imagepalettetotruecolor($image); // パレット PNG を変換
+                } else {
+                    $image = false;
+                }
+                imageavif($image, $avif_path, $avif_quality);
                 $converted_count++;
+            } else {
+                neowebp_errorlog("AVIF conversion failed : " . $file_path);
             }
         }
     }
@@ -214,9 +261,6 @@ function neowebp_webp_convert($base_dir, $compressed_dir) {
 
 // 既存画像を AVIFに変換
 function neowebp_avif_convert($base_dir, $compressed_dir) {
-    $avif_quality = get_option('neowebp_avif_quality', 30); // AVIF は 30 くらいが推奨
-    $avifenc_path = get_option('neowebp_avifenc_path', '');
-    $avifenc_jobs = get_option('neowebp_avifenc_jobs', 1);
 
     // `compressed-image` ディレクトリがなければ作成
     if (!file_exists($compressed_dir)) {
@@ -234,30 +278,17 @@ function neowebp_avif_convert($base_dir, $compressed_dir) {
 
     foreach ($files as $file) {
         $relative_path = str_replace($base_dir, '', $file);
-        $webp_path = $compressed_dir . $relative_path . '.webp';
         $avif_path = $compressed_dir . $relative_path . '.avif';
         neowebp_errorlog("webp_path:".$webp_path);
         neowebp_errorlog("avif_path:".$avif_path);
         // サブフォルダも作成
-        $webp_folder = dirname($webp_path);
-        if (!file_exists($webp_folder)) {
-            mkdir($webp_folder, 0755, true);
+        $avif_folder = dirname($avif_path);
+        if (!file_exists($avif_folder)) {
+            mkdir($avif_folder, 0755, true);
         }
 
         // AVIF 変換（`avifenc` バイナリを使用）
-        if (!file_exists($avif_path)) {
-            if($avifenc_path == '') {
-                $avifenc_path = "avifenc";
-            }
-            $cmd = $avifenc_path . " -j " . $avifenc_jobs . " --min " . " " . escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file) . " " . escapeshellarg($avif_path);
-            neowebp_errorlog("cmd:".$cmd);
-            exec($cmd, $output, $result);
-            if ($result !== 0) {
-                neowebp_errorlog("AVIF conversion failed : " . $file);
-            } else {
-                $converted_count++;
-            }
-        }
+        $converted_count += toavif($file, $avif_path);
     }
     return $converted_count;
 }
@@ -277,11 +308,6 @@ function neowebp_convert_uploaded_image_to_webp_avif($metadata) {
     $ymdir = "/" . $year . "/"  . $month . "/";
     $base_dir = $upload_dir['basedir'];  // /wp-content/uploads
     $compressed_dir = WP_CONTENT_DIR . '/compressed-image/uploads'; // WebP / AVIF の保存先
-
-    $quality_webp = get_option('neowebp_webp_quality', 80);
-    $avif_quality = get_option('neowebp_avif_quality', 30);
-    $avifenc_path = get_option('neowebp_avifenc_path', '');
-    $avifenc_jobs = get_option('neowebp_avifenc_jobs', 1);
 
     // `compressed-image` ディレクトリがなければ作成
     if (!file_exists($compressed_dir)) {
@@ -304,25 +330,11 @@ function neowebp_convert_uploaded_image_to_webp_avif($metadata) {
     }
 
     // WebP 変換
-    if (!file_exists($webp_path) && function_exists('imagewebp')) {
-        $image = imagecreatefromstring(file_get_contents($file_path));
-        if ($image) {
-            imagewebp($image, $webp_path, $quality_webp);
-            imagedestroy($image);
-        }
-    }
+    towebp($file_path, $webp_path);
 
     // AVIF 変換（`avifenc` コマンドを使用）
-    if (!file_exists($avif_path)) {
-        if($avifenc_path == '') {
-            $avifenc_path = "avifenc";
-        }
-        $cmd = $avifenc_path  . " -j " . $avifenc_jobs . " --min " . " " .  escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file_path) . " " . escapeshellarg($avif_path);        neowebp_errorlog("cmd:".$cmd);
-        exec($cmd, $output, $result);
-        if ($result !== 0) {
-             neowebp_errorlog("AVIF conversion failed : " . $file_path);
-        }
-    }
+    toavif($file_path, $avif_path);
+
 
     // サイズごとのファイルを圧縮
     $base_dir = $upload_dir['basedir'] . $ymdir . "/";  // /wp-content/uploads
@@ -334,26 +346,10 @@ function neowebp_convert_uploaded_image_to_webp_avif($metadata) {
         $avif_path = $compressed_dir . $relative_path . '.avif';
 
         // WebP 変換
-        if (!file_exists($webp_path) && function_exists('imagewebp')) {
-            $image = imagecreatefromstring(file_get_contents($file_path));
-            if ($image) {
-                imagewebp($image, $webp_path, $quality_webp);
-                imagedestroy($image);
-            }
-        }
+        towebp($file_path, $webp_path);
 
         // AVIF 変換（`avifenc` コマンドを使用）
-        if (!file_exists($avif_path)) {
-            if($avifenc_path == '') {
-                $avifenc_path = "avifenc";
-            }
-            $cmd = $avifenc_path  . " -j " . $avifenc_jobs . " --min " . " " .  escapeshellarg($avif_quality) . " --max " . escapeshellarg($avif_quality) . " " . escapeshellarg($file_path) . " " . escapeshellarg($avif_path);
-            neowebp_errorlog("cmd:".$cmd);
-            exec($cmd, $output, $result);
-            if ($result !== 0) {
-                neowebp_errorlog("AVIF conversion failed : " . $file_path);
-            }
-        }
+        toavif($file_path, $avif_path);
     }
 
     return $metadata;
