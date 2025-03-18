@@ -1,64 +1,64 @@
-# Free Wordpress webp/AVIFコンバーター
+# Free Wordpress webp/AVIF Converter
 
-## 特徴
+## Features
 100% Pure ChatGPT Based Code<br>
-nginx+fpm環境のWordpressに対応<br>
-nginx.confとかをいじる必要がなし<br>
-mod_rewriteや.htaccessが不要<br>
-Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより高速化<br>
-img srcsetで画像を置換
+Compatible with nginx+fpm environment for WordPress<br>
+No need to modify nginx.conf or similar files"<br>
+No need for mod_rewrite or .htaccess<br>
+Faster performance as no redirects occur even in Apache (or nginx+Apache) environments<br>
+Replace images with img srcset
 
 ## インストール
-WPROOT/wp-content/plugins/Neo-WebP-Converter ディレクトリを作成し
-その中にNeo-WebP-Converter.phpを入れて有効化
+making directory WPROOT/wp-content/plugins/Neo-WebP-Converter
+- Copy the files in the src/ folder and activate them
 
-## 設定画面
-設定画面は、設定→Neo Webp Converterの中にあります
+## Settings
+The settings screen is located under Settings → Neo Webp/AVIF Converter
 
-## avifについて
-AVIFの変換はphp8.1以降、libgd 2.3.0以降でないと対応しません
+## About avif
+AVIF conversion is only supported on PHP 8.1 or later and libgd 2.3.0 or later.
 
 sudo apt install libgd-dev
 
-等としてインストールしてください
+Please install it as well.
 
-もしくはavifencコマンドがPATHに通ってないと使用できません
+Alternatively, it cannot be used if the avifenc command is not in the PATH.
 
 sudo apt install libavif-bin<br>
 sudo pkg install libavif
 
-等としてインストールしてください
+Please install it as well.
 
-## 圧縮について
-avifencを使用すると多大な負荷がかかるだけではなく、
-ファイル数が多いと504エラーになります
+## About Compression
+Using avifenc not only puts a heavy load on the server, but it also causes a 504 error when there are many files.
 
-再度圧縮しなおしてください
+Please compress it again.
 
-## アンインストール
-無効化して削除
+## Uninstall
 
-wp-content/compressed-image をすべて削除
+Disable and delete.
 
-v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
+Delete all of wp-content/compressed-image.
 
-## バージョン履歴
-v0.34 - uninstall.phpを作成、なお*.webp、*.avifの画像は削除されません
+## Version History
+v0.99 - Classified for release, simplified internationalization
 
-v0.33 - avif変換にphpのエンコーダに対応
+v0.34 - Created uninstall.php; note that *.webp and *.avif images will not be deleted.
 
-v0.32 - 手動一括変換時にavifencが存在しない場合、エラーを出力するようにした
+v0.33 - Added support for AVIF conversion using the PHP encoder.
 
-v0.31 - avifenc の -j オプションでJOB数を指定できるようにした
+v0.32 - Added error output when avifenc is not found during manual batch conversion.
 
-v0.30 - メディアアップロード時に動的変換
+v0.31 - Added support for specifying the number of jobs with the -j option in avifenc.
 
-v0.23 - ユーザー権限サーバーでも動作するように？avifencのパスを設定できるようにした、webpとavifの変換を分割化、avifencがなくても正常動作するようにした
+v0.30 - Dynamic conversion during media upload.
 
-v0.22 - 経緯な変更、特にWebサイト等（ブログランキング、SNS等）からfetchされる時 webp/avifに対応してないとうまくいかないのを修正
+v0.23 - Made it possible to configure the path for avifenc, allowing it to work on user permission servers. Split the conversion process for WebP and AVIF, and ensured normal operation even without avifenc.
 
-v0.21 - 圧縮画像ファイルのディレクトリ変更、テーマも対応
+v0.22 - Made significant changes, particularly fixing issues where fetching from websites (such as blog rankings, SNS, etc.) would fail if WebP/AVIF was not supported.
 
-v0.2 - avif対応
+v0.21 - Changed the directory for compressed image files, with theme support.
 
-v0.1 - 初版
+v0.2 - Support avif
+
+v0.1 - First version
