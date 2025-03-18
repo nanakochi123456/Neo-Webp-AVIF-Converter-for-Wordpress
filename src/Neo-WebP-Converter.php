@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Neo WebP/AVIF Converter
  * Description: 自動で WebP/AVIF を作成し、HTML を変換する
- * Version: 0.33
+ * Version: 0.34
  * Author: Nano Yozakura
  */
 
@@ -23,7 +23,7 @@ function neowebp_errorlog($content) {
 
 // 管理画面のメニュー追加
 function neowebp_webp_converter_add_admin_menu() {
-    add_options_page('Neo WebP Converter 設定', 'Neo-WebP-Converter', 'manage_options', 'webp_converter', 'neowebp_webp_converter_settings_page');
+    add_options_page('Neo WebP/AVIF Converter 設定', 'Neo-WebP/AVIF-Converter', 'manage_options', 'webp_converter', 'neowebp_webp_converter_settings_page');
 }
 add_action('admin_menu', 'neowebp_webp_converter_add_admin_menu');
 

@@ -43,6 +43,8 @@ wp-content/compressed-image をすべて削除
 v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
 
 ## バージョン履歴
+v0.34 - uninstall.phpを作成、なお*.webp、*.avifの画像は削除されません
+
 v0.33 - avif変換にphpのエンコーダに対応
 
 v0.32 - 手動一括変換時にavifencが存在しない場合、エラーを出力するようにした
