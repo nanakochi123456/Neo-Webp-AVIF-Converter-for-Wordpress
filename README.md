@@ -8,7 +8,7 @@ No need for mod_rewrite or .htaccess<br>
 Faster performance as no redirects occur even in Apache (or nginx+Apache) environments<br>
 Replace images with img srcset
 
-## インストール
+## install
 making directory WPROOT/wp-content/plugins/Neo-WebP-Converter
 - Copy the files in the src/ folder and activate them
 
@@ -41,6 +41,8 @@ Disable and delete.
 Delete all of wp-content/compressed-image.
 
 ## Version History
+v1.0 - Registered in the WordPress directory, security strengthened. As exec cannot be used, support for avifenc has been discontinued. Please use the version linked here: GitHub Commit : Registered in the WordPress directory, security strengthened. As exec cannot be used, support for avifenc has been discontinued. Please use the version linked here: GitHub Commit : https://github.com/nanakochi123456/Neo-Webp-AVIF-Converter-for-Wordpress/commit/6d0a27ebd9c30406205fc85e295328cdbefee0c1#diff-b5875aebd416d1596845a822436c7a2bca2a865a800bec54d24ee17c47842ff1
+
 v0.99 - Classified for release, simplified internationalization
 
 v0.34 - Created uninstall.php; note that *.webp and *.avif images will not be deleted.

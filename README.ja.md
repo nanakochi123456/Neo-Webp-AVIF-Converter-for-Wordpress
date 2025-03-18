@@ -5,7 +5,7 @@
 nginx+fpm環境のWordpressに対応<br>
 nginx.confとかをいじる必要がなし<br>
 mod_rewriteや.htaccessが不要<br>
-Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより高速化<br>
+Apache環境(もしくはnginx+Apache環境）でもリダイレクトが発生しないのでより従来のwebp/avif変換より高速化<br>
 img srcsetで画像を置換
 
 ## インストール
@@ -40,9 +40,9 @@ avifencを使用すると多大な負荷がかかるだけではなく、
 
 wp-content/compressed-image をすべて削除
 
-v0.2以前のバージョンは、面倒だが、wp-content/uploads 以下の *.webp *.avif ファイルをそれぞれ削除
-
 ## バージョン履歴
+v1.0 - Wordpressディレクトリに登録、セキュリティー強化、なお、execを使用してはならないということで avifencのサポートは終了しています https://github.com/nanakochi123456/Neo-Webp-AVIF-Converter-for-Wordpress/commit/6d0a27ebd9c30406205fc85e295328cdbefee0c1#diff-b5875aebd416d1596845a822436c7a2bca2a865a800bec54d24ee17c47842ff1 こちらのバージョンをご利用下さい
+
 v0.99 - リリース用にクラス化、簡易国際化
 
 v0.34 - uninstall.phpを作成、なお*.webp、*.avifの画像は削除されません
