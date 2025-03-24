@@ -57,6 +57,30 @@ class neowebp {
 		add_filter('wp_get_attachment_image_attributes', array($this, 'neowebp_convert_images_to_webp_avif'), 10, 3);
 	}
 
+	// 再帰mkdir
+	function neomkdir( $path ) {
+		global $wp_filesystem;
+
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		// 既に存在している場合は true を返す
+		if ( $wp_filesystem->is_dir( $path ) ) {
+			return true;
+		}
+
+		// 親ディレクトリを再帰的に作成
+		$parent = dirname( $path );
+		if ( ! $wp_filesystem->is_dir( $parent ) ) {
+			$this->neomkdir( $parent );
+		}
+
+		// ディレクトリを作成
+		return $wp_filesystem->mkdir( $path );
+	}
+
 	// 管理画面のメニュー追加
 	public function neowebp_webp_converter_add_admin_menu() {
 		add_options_page( 'ja' === $this->getlang() ? 'Neo WebP/AVIF Converter 設定' : 'Neo WebP/AVIF Converter Setting', 'Neo-WebP/AVIF-Converter', 'manage_options', 'webp_converter', array( $this, 'neowebp_webp_converter_settings_page' ) );
@@ -254,7 +278,7 @@ class neowebp {
 
 		// `compressed-image` ディレクトリがなければ作成
 		if ( ! file_exists( $compressed_dir ) ) {
-			$this->wp_filesystem->mkdir( $compressed_dir, 0755, true );
+			$this->neomkdir( $compressed_dir, 0755 );
 		}
 
 		$files = $this->neowebp_get_all_images( $base_dir );
@@ -275,7 +299,7 @@ class neowebp {
 			// サブフォルダも作成
 			$webp_folder = dirname( $webp_path );
 			if ( ! file_exists( $webp_folder ) ) {
-				$this->wp_filesystem->mkdir( $webp_folder, 0755, true );
+				$this->neomkdir( $webp_folder, 0755 );
 			}
 			$converted_count += $this->towebp( $file, $webp_path );
 		}
@@ -356,7 +380,7 @@ class neowebp {
 
 		// `compressed-image` ディレクトリがなければ作成
 		if ( ! file_exists($compressed_dir) ) {
-			$this->wp_filesystem->mkdir( $compressed_dir, 0755, true );
+			$this->neomkdir( $compressed_dir, 0755 );
 		}
 
 		$files = $this->neowebp_get_all_images( $base_dir );
@@ -375,7 +399,7 @@ class neowebp {
 			// サブフォルダも作成
 			$avif_folder = dirname( $avif_path );
 			if ( ! file_exists( $avif_folder ) ) {
-				$this->wp_filesystem->mkdir( $avif_folder, 0755, true );
+				$this->neomkdir( $avif_folder, 0755 );
 			}
 
 			// AVIF 変換（`avifenc` バイナリを使用）
@@ -402,7 +426,7 @@ class neowebp {
 
 		// `compressed-image` ディレクトリがなければ作成
 		if ( ! file_exists($compressed_dir) ) {
-			$this->wp_filesystem->mkdir($compressed_dir, 0755, true);
+			$this->neomkdir($compressed_dir, 0755);
 		}
 
 		// オリジナルファイルを圧縮
@@ -417,7 +441,7 @@ class neowebp {
 		// サブフォルダも作成
 		$folder_path = dirname($webp_path);
 		if ( ! file_exists($folder_path) ) {
-			$this->wp_filesystem->mkdir($folder_path, 0755, true);
+			$this->neomkdir($folder_path, 0755);
 		}
 
 		// WebP 変換
